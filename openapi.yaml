@@ -1,0 +1,1952 @@
+openapi: 3.0.3
+info:
+  title: To-Do Application API
+  description: |
+    RESTful API for the internal task management application.
+    
+    This API provides endpoints for managing tasks, users, comments, tags, and generating reports.
+    The application follows Clean Architecture and Domain-Driven Design principles.
+    
+    **Key Features:**
+    - Task CRUD operations
+    - Task assignment and reassignment
+    - Comments and collaboration
+    - Tags and categorization
+    - Reporting and analytics
+    - Role-based access control (User, Manager, Admin)
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@company.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.todoapp.company.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management (Admin only)
+  - name: Tasks
+    description: Task management operations
+  - name: Comments
+    description: Task comments and collaboration
+  - name: Tags
+    description: Tag management
+  - name: Dashboard
+    description: Dashboard metrics and widgets
+  - name: Reports
+    description: Reporting and analytics
+  - name: Notifications
+    description: Notification preferences
+  - name: Health
+    description: System health checks
+
+paths:
+  # Authentication Endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user with username/password or SSO token
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              usernamePassword:
+                value:
+                  type: INTERNAL
+                  username: jdoe
+                  password: SecurePass123!
+              sso:
+                value:
+                  type: SSO
+                  ssoToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+                example: JSESSIONID=abc123; Path=/; HttpOnly; Secure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Logout current user and invalidate session
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh session
+      description: Refresh authentication session token
+      operationId: refreshSession
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/password/reset:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Request password reset link via email
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@company.com
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: User not found
+
+  /auth/password/reset/confirm:
+    post:
+      tags:
+        - Authentication
+      summary: Confirm password reset
+      description: Reset password using token from email
+      operationId: confirmPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                  example: abc123def456
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: NewSecurePass123!
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # User Management Endpoints (Admin only)
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List all users
+      description: Get list of all users (Admin only)
+      operationId: listUsers
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: search
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPageResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags:
+        - Users
+      summary: Create new user
+      description: Create a new user account (Admin only)
+      operationId: createUser
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Get user details by ID
+      operationId: getUserById
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user details (Admin only, or own profile)
+      operationId: updateUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      description: Delete user account (Admin only)
+      operationId: deleteUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      description: Get authenticated user's profile information
+      operationId: getCurrentUser
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/me/preferences:
+    get:
+      tags:
+        - Users
+      summary: Get user preferences
+      description: Get current user's preferences
+      operationId: getUserPreferences
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+    put:
+      tags:
+        - Users
+      summary: Update user preferences
+      description: Update current user's preferences
+      operationId: updateUserPreferences
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+  # Task Endpoints
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: List tasks
+      description: |
+        Get list of tasks with filtering, sorting, and pagination.
+        Users see their own tasks and assigned tasks.
+        Managers see team tasks in addition.
+      operationId: listTasks
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: status
+          in: query
+          description: Filter by task status
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          description: Filter by priority
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: assigneeId
+          in: query
+          description: Filter by assignee user ID
+          schema:
+            type: string
+        - name: createdById
+          in: query
+          description: Filter by creator user ID
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter by tags (comma-separated)
+          schema:
+            type: string
+            example: urgent,backend
+        - name: overdue
+          in: query
+          description: Filter overdue tasks only
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          description: Full-text search on title and description
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [dueDate, priority, createdDate, updatedDate, title]
+            default: dueDate
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: ASC
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPageResponse'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create task
+      description: Create a new task
+      operationId: createTask
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /tasks/{taskId}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task by ID
+      description: Get task details including comments and history
+      operationId: getTaskById
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update task
+      description: |
+        Update task details. Users can update own tasks.
+        Managers can update team tasks.
+        Admins can update any task.
+      operationId: updateTask
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task
+      description: |
+        Soft delete a task. Users can delete own tasks.
+        Managers can delete team tasks.
+        Admins can delete any task.
+      operationId: deleteTask
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '204':
+          description: Task deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{taskId}/assign:
+    post:
+      tags:
+        - Tasks
+      summary: Assign task
+      description: Assign or reassign task to a user (Managers and Admins can reassign)
+      operationId: assignTask
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - assigneeId
+              properties:
+                assigneeId:
+                  type: string
+                  example: user-123
+                notifyAssignee:
+                  type: boolean
+                  default: true
+                  description: Send notification to assignee
+      responses:
+        '200':
+          description: Task assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{taskId}/status:
+    put:
+      tags:
+        - Tasks
+      summary: Update task status
+      description: Update task status with validation of state transitions
+      operationId: updateTaskStatus
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/TaskStatus'
+                notify:
+                  type: boolean
+                  default: true
+                  description: Send notification to assignee and creator
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{taskId}/history:
+    get:
+      tags:
+        - Tasks
+      summary: Get task history
+      description: Get audit trail of task changes (status, assignment, etc.)
+      operationId: getTaskHistory
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskHistoryEntry'
+
+  # Comment Endpoints
+  /tasks/{taskId}/comments:
+    get:
+      tags:
+        - Comments
+      summary: Get task comments
+      description: Get all comments for a task
+      operationId: getTaskComments
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+
+    post:
+      tags:
+        - Comments
+      summary: Add comment to task
+      description: Add a comment to a task
+      operationId: addComment
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 2000
+                  example: This task is blocked waiting for API documentation.
+                notify:
+                  type: boolean
+                  default: true
+                  description: Send notification to assignee and creator
+      responses:
+        '201':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{taskId}/comments/{commentId}:
+    put:
+      tags:
+        - Comments
+      summary: Update comment
+      description: Update own comment (within 24 hours) or any comment (Admin)
+      operationId: updateComment
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Comments
+      summary: Delete comment
+      description: Delete own comment (within 24 hours) or any comment (Admin)
+      operationId: deleteComment
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Tag Endpoints
+  /tags:
+    get:
+      tags:
+        - Tags
+      summary: List all tags
+      description: Get all available tags with usage count
+      operationId: listTags
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: search
+          in: query
+          description: Search tags by name
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Limit number of results
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+  /tags/{tagName}:
+    get:
+      tags:
+        - Tags
+      summary: Get tag details
+      description: Get tag details and tasks using this tag
+      operationId: getTagDetails
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tagName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Dashboard Endpoints
+  /dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard data
+      description: Get dashboard metrics and widgets for current user
+      operationId: getDashboard
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+
+  /dashboard/my-tasks:
+    get:
+      tags:
+        - Dashboard
+      summary: Get my tasks summary
+      description: Get task counts by status for current user
+      operationId: getMyTasksSummary
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Task summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSummary'
+
+  /dashboard/overdue:
+    get:
+      tags:
+        - Dashboard
+      summary: Get overdue tasks
+      description: Get list of overdue tasks for current user or team (Manager)
+      operationId: getOverdueTasks
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of overdue tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+  /dashboard/upcoming:
+    get:
+      tags:
+        - Dashboard
+      summary: Get upcoming due tasks
+      description: Get tasks due in next 7 days
+      operationId: getUpcomingTasks
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+            minimum: 1
+            maximum: 30
+      responses:
+        '200':
+          description: List of upcoming tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+  /dashboard/recent-activity:
+    get:
+      tags:
+        - Dashboard
+      summary: Get recent activity
+      description: Get recent task updates and activities
+      operationId: getRecentActivity
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+
+  # Report Endpoints
+  /reports/completed:
+    get:
+      tags:
+        - Reports
+      summary: Completed tasks report
+      description: Generate completed tasks report (Manager/Admin only)
+      operationId: getCompletedTasksReport
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: teamId
+          in: query
+          description: Filter by team ID
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [json, csv, pdf]
+            default: json
+      responses:
+        '200':
+          description: Completed tasks report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletedTasksReport'
+            text/csv:
+              schema:
+                type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/overdue:
+    get:
+      tags:
+        - Reports
+      summary: Overdue tasks report
+      description: Generate overdue tasks report (Manager/Admin only)
+      operationId: getOverdueTasksReport
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: teamId
+          in: query
+          description: Filter by team ID
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [json, csv, pdf]
+            default: json
+      responses:
+        '200':
+          description: Overdue tasks report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverdueTasksReport'
+            text/csv:
+              schema:
+                type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/productivity:
+    get:
+      tags:
+        - Reports
+      summary: Productivity metrics report
+      description: Get productivity metrics (Manager/Admin only)
+      operationId: getProductivityReport
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: teamId
+          in: query
+          description: Filter by team ID
+          schema:
+            type: string
+        - name: period
+          in: query
+          description: Time period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: weekly
+        - name: startDate
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Productivity metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductivityReport'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # Notification Endpoints
+  /notifications/preferences:
+    get:
+      tags:
+        - Notifications
+      summary: Get notification preferences
+      description: Get current user's notification preferences
+      operationId: getNotificationPreferences
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+    put:
+      tags:
+        - Notifications
+      summary: Update notification preferences
+      description: Update current user's notification preferences
+      operationId: updateNotificationPreferences
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+  # Health Check Endpoints
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check system health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /health/readiness:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Check if system is ready to accept traffic
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: System is ready
+        '503':
+          description: System is not ready
+
+  /health/liveness:
+    get:
+      tags:
+        - Health
+      summary: Liveness check
+      description: Check if system is alive
+      operationId: livenessCheck
+      responses:
+        '200':
+          description: System is alive
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Session cookie for authentication
+
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Task identifier
+      schema:
+        type: string
+        example: task-123
+
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: User identifier
+      schema:
+        type: string
+        example: user-123
+
+  schemas:
+    # Authentication Schemas
+    LoginRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [INTERNAL, SSO]
+          description: Authentication type
+        username:
+          type: string
+          description: Username (required for INTERNAL)
+          example: jdoe
+        password:
+          type: string
+          format: password
+          description: Password (required for INTERNAL)
+          example: SecurePass123!
+        ssoToken:
+          type: string
+          description: SSO token (required for SSO)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        rememberMe:
+          type: boolean
+          default: false
+          description: Remember me option
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          description: Session token (if using token-based auth)
+        expiresAt:
+          type: string
+          format: date-time
+          description: Session expiration time
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully
+        timestamp:
+          type: string
+          format: date-time
+
+    # User Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user-123
+        username:
+          type: string
+          example: jdoe
+        email:
+          type: string
+          format: email
+          example: john.doe@company.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        role:
+          $ref: '#/components/schemas/UserRole'
+        active:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserRole:
+      type: string
+      enum: [USER, MANAGER, ADMIN]
+      description: User role with permissions
+      example: USER
+
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+        - firstName
+        - lastName
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: jdoe
+        email:
+          type: string
+          format: email
+          example: john.doe@company.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: SecurePass123!
+        firstName:
+          type: string
+          maxLength: 100
+          example: John
+        lastName:
+          type: string
+          maxLength: 100
+          example: Doe
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        role:
+          $ref: '#/components/schemas/UserRole'
+        active:
+          type: boolean
+
+    UserPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    UserPreferences:
+      type: object
+      properties:
+        timezone:
+          type: string
+          default: UTC
+          example: America/New_York
+        dateFormat:
+          type: string
+          default: MM/dd/yyyy
+          example: MM/dd/yyyy
+        timeFormat:
+          type: string
+          default: 12h
+          enum: [12h, 24h]
+        language:
+          type: string
+          default: en
+          example: en
+        theme:
+          type: string
+          default: light
+          enum: [light, dark]
+
+    # Task Schemas
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          example: task-123
+        title:
+          type: string
+          maxLength: 200
+          example: Implement user authentication
+        description:
+          type: string
+          maxLength: 5000
+          example: Implement JWT-based authentication with Spring Security
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-02-15T17:00:00Z'
+        assignee:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        assigneeId:
+          type: string
+          nullable: true
+        createdBy:
+          $ref: '#/components/schemas/User'
+        createdById:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          example: [urgent, backend, authentication]
+        overdue:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskStatus:
+      type: string
+      enum: [TO_DO, IN_PROGRESS, BLOCKED, COMPLETED, CANCELLED]
+      description: Task status
+      example: TO_DO
+
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      description: Task priority level
+      example: MEDIUM
+
+    TaskDetail:
+      allOf:
+        - $ref: '#/components/schemas/Task'
+        - type: object
+          properties:
+            comments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Comment'
+            history:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskHistoryEntry'
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          example: Implement user authentication
+        description:
+          type: string
+          maxLength: 5000
+          example: Implement JWT-based authentication with Spring Security
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+          default: TO_DO
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+          default: MEDIUM
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-02-15T17:00:00Z'
+        assigneeId:
+          type: string
+          nullable: true
+          example: user-123
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          example: [urgent, backend]
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        assigneeId:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+
+    TaskPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    TaskHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        action:
+          type: string
+          enum: [CREATED, STATUS_CHANGED, ASSIGNED, REASSIGNED, UPDATED, DELETED]
+        field:
+          type: string
+          nullable: true
+          example: status
+        oldValue:
+          type: string
+          nullable: true
+          example: TO_DO
+        newValue:
+          type: string
+          nullable: true
+          example: IN_PROGRESS
+        performedBy:
+          $ref: '#/components/schemas/User'
+        performedAt:
+          type: string
+          format: date-time
+
+    # Comment Schemas
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: comment-123
+        taskId:
+          type: string
+          example: task-123
+        text:
+          type: string
+          maxLength: 2000
+          example: This task is blocked waiting for API documentation.
+        author:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # Tag Schemas
+    Tag:
+      type: object
+      properties:
+        name:
+          type: string
+          example: urgent
+        usageCount:
+          type: integer
+          description: Number of tasks using this tag
+          example: 15
+
+    TagDetail:
+      allOf:
+        - $ref: '#/components/schemas/Tag'
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/Task'
+
+    # Dashboard Schemas
+    Dashboard:
+      type: object
+      properties:
+        myTasksSummary:
+          $ref: '#/components/schemas/TaskSummary'
+        overdueTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        upcomingTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+
+    TaskSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 25
+        toDo:
+          type: integer
+          example: 10
+        inProgress:
+          type: integer
+          example: 8
+        blocked:
+          type: integer
+          example: 2
+        completed:
+          type: integer
+          example: 5
+        cancelled:
+          type: integer
+          example: 0
+        overdue:
+          type: integer
+          example: 3
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [TASK_CREATED, TASK_UPDATED, TASK_ASSIGNED, TASK_COMPLETED, COMMENT_ADDED]
+        taskId:
+          type: string
+        taskTitle:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        timestamp:
+          type: string
+          format: date-time
+
+    # Report Schemas
+    CompletedTasksReport:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date
+            endDate:
+              type: string
+              format: date
+        totalCompleted:
+          type: integer
+          example: 150
+        completionRate:
+          type: number
+          format: float
+          description: Completion rate as percentage
+          example: 75.5
+        averageCompletionTime:
+          type: number
+          format: float
+          description: Average completion time in hours
+          example: 48.5
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        metricsByPriority:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              completed:
+                type: integer
+              averageTime:
+                type: number
+                format: float
+
+    OverdueTasksReport:
+      type: object
+      properties:
+        totalOverdue:
+          type: integer
+          example: 12
+        overdueRate:
+          type: number
+          format: float
+          description: Overdue rate as percentage
+          example: 8.5
+        oldestOverdueDays:
+          type: integer
+          description: Days since oldest overdue task
+          example: 15
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+
+    ProductivityReport:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [daily, weekly, monthly]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        tasksCompleted:
+          type: integer
+        averageCompletionTime:
+          type: number
+          format: float
+        completionRate:
+          type: number
+          format: float
+        completionRateByPriority:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        overdueRate:
+          type: number
+          format: float
+        metricsByUser:
+          type: array
+          items:
+            type: object
+            properties:
+              user:
+                $ref: '#/components/schemas/User'
+              tasksCompleted:
+                type: integer
+              averageCompletionTime:
+                type: number
+                format: float
+
+    # Notification Schemas
+    NotificationPreferences:
+      type: object
+      properties:
+        emailEnabled:
+          type: boolean
+          default: true
+        taskAssigned:
+          type: boolean
+          default: true
+        taskReassigned:
+          type: boolean
+          default: true
+        dueDateReminder:
+          type: boolean
+          default: true
+        reminderDaysBefore:
+          type: array
+          items:
+            type: integer
+          description: Days before due date to send reminder
+          example: [1, 3]
+        overdueNotification:
+          type: boolean
+          default: true
+        overdueNotificationFrequency:
+          type: string
+          enum: [daily, weekly, none]
+          default: daily
+        commentAdded:
+          type: boolean
+          default: true
+        statusChanged:
+          type: boolean
+          default: false
+
+    # Health Schemas
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+        database:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [UP, DOWN]
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error or invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Validation failed
+              message:
+                type: string
+                example: Title is required
+              field:
+                type: string
+                example: title
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized - authentication required or invalid credentials
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+              message:
+                type: string
+                example: Invalid credentials or session expired
+              timestamp:
+                type: string
+                format: date-time
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Forbidden
+              message:
+                type: string
+                example: You do not have permission to perform this action
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not Found
+              message:
+                type: string
+                example: Task not found
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal Server Error
+              message:
+                type: string
+                example: An unexpected error occurred
+              timestamp:
+                type: string
+                format: date-time
