@@ -1,0 +1,1763 @@
+{
+	"info": {
+		"_postman_id": "todo-app-collection-2026",
+		"name": "To-Do Application API",
+		"description": "RESTful API for the internal task management application.\n\nThis collection includes:\n- All API endpoints organized by tags\n- Sample request payloads\n- Negative test cases\n- Environment variables for baseURL and authentication\n\n**Key Features:**\n- Task CRUD operations\n- Task assignment and reassignment\n- Comments and collaboration\n- Tags and categorization\n- Reporting and analytics\n- Role-based access control (User, Manager, Admin)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "api-doc-engineer"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login - Username/Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set('authToken', jsonData.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"INTERNAL\",\n  \"username\": \"jdoe\",\n  \"password\": \"SecurePass123!\",\n  \"rememberMe\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login - SSO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SSO\",\n  \"ssoToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Invalid Credentials (Negative)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"INTERNAL\",\n  \"username\": \"invalid\",\n  \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Missing Required Fields (Negative)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"INTERNAL\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/auth/logout",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Session",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/auth/refresh",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "refresh"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request Password Reset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@company.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/password/reset",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "password", "reset"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request Password Reset - Invalid Email (Negative)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"invalid-email\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/password/reset",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "password", "reset"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Password Reset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"abc123def456\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/password/reset/confirm",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "password", "reset", "confirm"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Password Reset - Weak Password (Negative)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"abc123def456\",\n  \"newPassword\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/password/reset/confirm",
+							"host": ["{{baseURL}}"],
+							"path": ["auth", "password", "reset", "confirm"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "User authentication and authorization"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "List All Users",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users?page=0&size=25&search=&role=USER",
+							"host": ["{{baseURL}}"],
+							"path": ["users"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "25"
+								},
+								{
+									"key": "search",
+									"value": ""
+								},
+								{
+									"key": "role",
+									"value": "USER"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Users - Unauthorized (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": ["{{baseURL}}"],
+							"path": ["users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"jdoe\",\n  \"email\": \"john.doe@company.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": ["{{baseURL}}"],
+							"path": ["users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create User - Missing Required Fields (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"jdoe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": ["{{baseURL}}"],
+							"path": ["users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create User - Invalid Email (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"jdoe\",\n  \"email\": \"invalid-email\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": ["{{baseURL}}"],
+							"path": ["users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{userId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "{{userId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User - Not Found (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/non-existent-id",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "non-existent-id"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe.updated@company.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe Updated\",\n  \"role\": \"MANAGER\",\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{userId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "{{userId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User - Forbidden (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{userId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "{{userId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{userId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "{{userId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User Profile",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/me",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Preferences",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/me/preferences",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "me", "preferences"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Preferences",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"timezone\": \"America/New_York\",\n  \"dateFormat\": \"MM/dd/yyyy\",\n  \"timeFormat\": \"12h\",\n  \"language\": \"en\",\n  \"theme\": \"dark\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/me/preferences",
+							"host": ["{{baseURL}}"],
+							"path": ["users", "me", "preferences"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "User management (Admin only)"
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "List Tasks",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks?page=0&size=25&status=TO_DO&priority=MEDIUM&sortBy=dueDate&sortOrder=ASC",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "25"
+								},
+								{
+									"key": "status",
+									"value": "TO_DO"
+								},
+								{
+									"key": "priority",
+									"value": "MEDIUM"
+								},
+								{
+									"key": "sortBy",
+									"value": "dueDate"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Tasks - With Filters",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks?page=0&size=25&status=IN_PROGRESS&priority=HIGH&assigneeId={{userId}}&tags=urgent,backend&overdue=false&search=authentication",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "25"
+								},
+								{
+									"key": "status",
+									"value": "IN_PROGRESS"
+								},
+								{
+									"key": "priority",
+									"value": "HIGH"
+								},
+								{
+									"key": "assigneeId",
+									"value": "{{userId}}"
+								},
+								{
+									"key": "tags",
+									"value": "urgent,backend"
+								},
+								{
+									"key": "overdue",
+									"value": "false"
+								},
+								{
+									"key": "search",
+									"value": "authentication"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Task",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Implement user authentication\",\n  \"description\": \"Implement JWT-based authentication with Spring Security\",\n  \"status\": \"TO_DO\",\n  \"priority\": \"MEDIUM\",\n  \"dueDate\": \"2026-02-15T17:00:00Z\",\n  \"assigneeId\": \"user-123\",\n  \"tags\": [\"urgent\", \"backend\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Task - Minimal",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Simple task\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Task - Missing Title (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Task without title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Task - Invalid Status (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Task with invalid status\",\n  \"status\": \"INVALID_STATUS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task by ID",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task - Not Found (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/non-existent-task-id",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "non-existent-task-id"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated task title\",\n  \"description\": \"Updated description\",\n  \"status\": \"IN_PROGRESS\",\n  \"priority\": \"HIGH\",\n  \"dueDate\": \"2026-02-20T17:00:00Z\",\n  \"assigneeId\": \"user-456\",\n  \"tags\": [\"urgent\", \"backend\", \"updated\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task - Partial Update",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"COMPLETED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task - Forbidden (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"COMPLETED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Task",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Task",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"assigneeId\": \"user-123\",\n  \"notifyAssignee\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/assign",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "assign"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Task - Missing assigneeId (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"notifyAssignee\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/assign",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "assign"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task Status",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"notify\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/status",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "status"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task Status - Invalid Status (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"INVALID_STATUS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/status",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "status"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task History",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/history",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "history"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Task management operations"
+		},
+		{
+			"name": "Comments",
+			"item": [
+				{
+					"name": "Get Task Comments",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Comment to Task",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"This task is blocked waiting for API documentation.\",\n  \"notify\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Comment - Missing Text (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"notify\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Comment - Text Too Long (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"This is a very long comment that exceeds the maximum length of 2000 characters. \" + \"x\".repeat(2000)\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Updated comment text\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments", "{{commentId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment - Forbidden (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Trying to update someone else's comment\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments", "{{commentId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments", "{{commentId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Comment - Not Found (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tasks/{{taskId}}/comments/non-existent-comment-id",
+							"host": ["{{baseURL}}"],
+							"path": ["tasks", "{{taskId}}", "comments", "non-existent-comment-id"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Task comments and collaboration"
+		},
+		{
+			"name": "Tags",
+			"item": [
+				{
+					"name": "List All Tags",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tags?search=&limit=50",
+							"host": ["{{baseURL}}"],
+							"path": ["tags"],
+							"query": [
+								{
+									"key": "search",
+									"value": ""
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Tags - With Search",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tags?search=urgent&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["tags"],
+							"query": [
+								{
+									"key": "search",
+									"value": "urgent"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag Details",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tags/urgent",
+							"host": ["{{baseURL}}"],
+							"path": ["tags", "urgent"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag - Not Found (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/tags/non-existent-tag",
+							"host": ["{{baseURL}}"],
+							"path": ["tags", "non-existent-tag"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Tag management"
+		},
+		{
+			"name": "Dashboard",
+			"item": [
+				{
+					"name": "Get Dashboard Data",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks Summary",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard/my-tasks",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard", "my-tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Overdue Tasks",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard/overdue?limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard", "overdue"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Tasks",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard/upcoming?days=7",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard", "upcoming"],
+							"query": [
+								{
+									"key": "days",
+									"value": "7"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Tasks - Invalid Days (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard/upcoming?days=100",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard", "upcoming"],
+							"query": [
+								{
+									"key": "days",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recent Activity",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/dashboard/recent-activity?limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["dashboard", "recent-activity"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Dashboard metrics and widgets"
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "Completed Tasks Report - JSON",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/completed?userId={{userId}}&startDate=2026-01-01&endDate=2026-02-01&priority=HIGH&format=json",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "completed"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{userId}}"
+								},
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								},
+								{
+									"key": "priority",
+									"value": "HIGH"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Completed Tasks Report - CSV",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/completed?startDate=2026-01-01&endDate=2026-02-01&format=csv",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "completed"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								},
+								{
+									"key": "format",
+									"value": "csv"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Completed Tasks Report - PDF",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/completed?startDate=2026-01-01&endDate=2026-02-01&format=pdf",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "completed"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								},
+								{
+									"key": "format",
+									"value": "pdf"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Completed Tasks Report - Forbidden (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/completed",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "completed"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Overdue Tasks Report - JSON",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/overdue?teamId=team-123&startDate=2026-01-01&endDate=2026-02-01&format=json",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "overdue"],
+							"query": [
+								{
+									"key": "teamId",
+									"value": "team-123"
+								},
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Overdue Tasks Report - CSV",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/overdue?startDate=2026-01-01&endDate=2026-02-01&format=csv",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "overdue"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								},
+								{
+									"key": "format",
+									"value": "csv"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Productivity Report",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/productivity?userId={{userId}}&period=weekly&startDate=2026-01-01&endDate=2026-02-01",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "productivity"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{userId}}"
+								},
+								{
+									"key": "period",
+									"value": "weekly"
+								},
+								{
+									"key": "startDate",
+									"value": "2026-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-01"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Productivity Report - Invalid Period (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/reports/productivity?period=invalid",
+							"host": ["{{baseURL}}"],
+							"path": ["reports", "productivity"],
+							"query": [
+								{
+									"key": "period",
+									"value": "invalid"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Reporting and analytics"
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get Notification Preferences",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/notifications/preferences",
+							"host": ["{{baseURL}}"],
+							"path": ["notifications", "preferences"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Notification Preferences",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailEnabled\": true,\n  \"taskAssigned\": true,\n  \"taskReassigned\": true,\n  \"dueDateReminder\": true,\n  \"reminderDaysBefore\": [1, 3],\n  \"overdueNotification\": true,\n  \"overdueNotificationFrequency\": \"daily\",\n  \"commentAdded\": true,\n  \"statusChanged\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/notifications/preferences",
+							"host": ["{{baseURL}}"],
+							"path": ["notifications", "preferences"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Notification Preferences - Invalid Frequency (Negative)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"overdueNotificationFrequency\": \"invalid\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/notifications/preferences",
+							"host": ["{{baseURL}}"],
+							"path": ["notifications", "preferences"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Notification preferences"
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/health",
+							"host": ["{{baseURL}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/health/readiness",
+							"host": ["{{baseURL}}"],
+							"path": ["health", "readiness"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Liveness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/health/liveness",
+							"host": ["{{baseURL}}"],
+							"path": ["health", "liveness"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "System health checks"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "user-123",
+			"type": "string"
+		},
+		{
+			"key": "taskId",
+			"value": "task-123",
+			"type": "string"
+		},
+		{
+			"key": "commentId",
+			"value": "comment-123",
+			"type": "string"
+		}
+	]
+}

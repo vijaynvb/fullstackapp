@@ -40,9 +40,13 @@ export const TaskCreatePage = () => {
       queryClient.invalidateQueries('tasks')
       navigate('/tasks')
     },
+    onError: (error: any) => {
+      console.error('Error creating task:', error)
+    },
   })
 
   const onSubmit = (data: TaskFormData) => {
+    console.log('Submitting task:', data)
     createMutation.mutate(data)
   }
 
@@ -50,6 +54,14 @@ export const TaskCreatePage = () => {
     <div className="task-create-page">
       <div className="container">
         <h1>Create New Task</h1>
+        {createMutation.isError && (
+          <div className="error-message" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px' }}>
+            {createMutation.error?.response?.data?.message 
+              || createMutation.error?.response?.data?.error 
+              || createMutation.error?.message 
+              || 'Failed to create task. Please try again.'}
+          </div>
+        )}
         <div className="card">
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="form-group">

@@ -9,8 +9,8 @@ import './LoginPage.css'
 
 const loginSchema = z.object({
   type: z.nativeEnum(AuthType),
-  username: z.string().min(1, 'Username is required').optional(),
-  password: z.string().min(1, 'Password is required').optional(),
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
   ssoToken: z.string().optional(),
   rememberMe: z.boolean().default(false),
 })
@@ -39,12 +39,50 @@ export const LoginPage = () => {
     setLoading(true)
 
     try {
-      const response = await authApi.login(data)
+      // Ensure type is always included
+      const loginData = {
+        ...data,
+        type: AuthType.INTERNAL,
+      }
+      
+      console.log('Attempting login with:', { username: loginData.username, type: loginData.type })
+      
+      const response = await authApi.login(loginData)
+      
+      // Validate response has required fields
+      if (!response.user) {
+        throw new Error('Login response missing user data')
+      }
+      if (!response.user.id) {
+        console.error('Login response user missing ID:', response.user)
+        throw new Error('Login response user missing ID field')
+      }
+      
+      // Store auth data
       localStorage.setItem('authToken', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
+      
+      // Verify storage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+      console.log('✓ Login successful - User stored:', {
+        id: storedUser.id,
+        username: storedUser.username,
+        role: storedUser.role
+      })
+      
+      if (!storedUser.id) {
+        console.error('✗ Failed to store user ID in localStorage!')
+        throw new Error('Failed to store user data')
+      }
+      
       navigate('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed')
+      console.error('Login error:', err)
+      const errorMessage = err.response?.data?.message 
+        || err.response?.data?.error 
+        || err.message 
+        || 'Login failed. Please check your credentials.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -57,6 +95,7 @@ export const LoginPage = () => {
         <h2>Sign In</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
+          <input type="hidden" {...register('type')} value={AuthType.INTERNAL} />
           <div className="form-group">
             <label className="form-label">Username</label>
             <input

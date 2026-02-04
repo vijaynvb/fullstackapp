@@ -25,10 +25,16 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
-        log.debug("Login attempt for type: {}", request.getType());
-        AuthResponse authResponse = authenticationService.authenticate(request);
-        // TODO: Set session cookie
-        return ResponseEntity.ok(authResponse);
+        log.info("Login attempt for username: {}, type: {}", request.getUsername(), request.getType());
+        try {
+            AuthResponse authResponse = authenticationService.authenticate(request);
+            log.info("Login successful for username: {}", request.getUsername());
+            // TODO: Set session cookie
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            log.error("Login failed for username: {}", request.getUsername(), e);
+            throw e;
+        }
     }
 
     @PostMapping("/logout")
