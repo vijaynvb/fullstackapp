@@ -11,7 +11,11 @@ import com.todoapp.domain.enums.TaskStatus;
 import com.todoapp.domain.enums.UserRole;
 import com.todoapp.exception.NotFoundException;
 import com.todoapp.exception.AuthorizationException;
+import com.todoapp.mapper.CommentMapper;
+import com.todoapp.mapper.TaskHistoryMapper;
 import com.todoapp.mapper.TaskMapper;
+import com.todoapp.repository.CommentRepository;
+import com.todoapp.repository.TaskHistoryRepository;
 import com.todoapp.repository.TaskRepository;
 import com.todoapp.repository.UserRepository;
 import com.todoapp.service.TaskService;
@@ -31,7 +35,11 @@ import java.util.List;
 public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final TaskHistoryRepository taskHistoryRepository;
     private final TaskMapper taskMapper;
+    private final CommentMapper commentMapper;
+    private final TaskHistoryMapper taskHistoryMapper;
 
     @Override
     @Transactional
@@ -167,7 +175,21 @@ public class TaskServiceImpl implements TaskService {
 
         // TODO: Check if user has access to this task
         
-        return taskMapper.toDetailDTO(task);
+        TaskDTO taskDTO = taskMapper.toDTO(task);
+        var comments = commentRepository.findByTaskIdOrderByCreatedAtAsc(taskId)
+            .stream()
+            .map(commentMapper::toDTO)
+            .toList();
+        var history = taskHistoryRepository.findByTaskIdOrderByPerformedAtDesc(taskId)
+            .stream()
+            .map(taskHistoryMapper::toDTO)
+            .toList();
+        
+        return TaskDetailDTO.builder()
+            .task(taskDTO)
+            .comments(comments)
+            .history(history)
+            .build();
     }
 
     @Override
