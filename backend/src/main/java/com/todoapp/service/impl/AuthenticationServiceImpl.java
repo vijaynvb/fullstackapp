@@ -2,10 +2,13 @@ package com.todoapp.service.impl;
 
 import com.todoapp.domain.entity.User;
 import com.todoapp.domain.enums.AuthType;
+import com.todoapp.domain.enums.UserRole;
 import com.todoapp.dto.AuthResponse;
 import com.todoapp.dto.LoginRequest;
+import com.todoapp.dto.SignupRequest;
 import com.todoapp.dto.UserDTO;
 import com.todoapp.exception.AuthenticationException;
+import com.todoapp.exception.ConflictException;
 import com.todoapp.exception.NotFoundException;
 import com.todoapp.mapper.UserMapper;
 import com.todoapp.repository.UserRepository;
@@ -25,6 +28,39 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+
+    @Override
+    @Transactional
+    public AuthResponse register(SignupRequest request) {
+        log.debug("Registering new user with username: {}", request.getUsername());
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ConflictException("Username already exists");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Email already registered");
+        }
+
+        User user = User.builder()
+            .username(request.getUsername())
+            .email(request.getEmail().trim().toLowerCase())
+            .firstName(request.getFirstName().trim())
+            .lastName(request.getLastName().trim())
+            .passwordHash(passwordEncoder.encode(request.getPassword()))
+            .role(UserRole.USER)
+            .active(true)
+            .build();
+
+        user = userRepository.save(user);
+        log.info("Registered new user: {} (ID: {})", user.getUsername(), user.getId());
+
+        UserDTO userDTO = userMapper.toDTO(user);
+        return AuthResponse.builder()
+            .user(userDTO)
+            .token("session-token-placeholder")
+            .expiresAt(LocalDateTime.now().plusHours(8))
+            .build();
+    }
 
     @Override
     @Transactional(readOnly = true)

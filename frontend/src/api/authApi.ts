@@ -1,7 +1,12 @@
 import { apiClient } from './apiClient'
-import { LoginRequest, AuthResponse } from './types'
+import { LoginRequest, SignupRequest, AuthResponse } from './types'
 
 export const authApi = {
+  signup: async (data: SignupRequest): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/signup', data)
+    return response.data
+  },
+
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>('/auth/login', credentials)
     return response.data

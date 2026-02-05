@@ -39,6 +39,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflictException(ConflictException ex) {
+        log.error("Conflict: {}", ex.getMessage());
+        ErrorResponse error = ErrorResponse.builder()
+            .error("Conflict")
+            .message(ex.getMessage())
+            .timestamp(LocalDateTime.now())
+            .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(AuthorizationException.class)
     public ResponseEntity<ErrorResponse> handleAuthorizationException(AuthorizationException ex) {
         log.error("Authorization failed: {}", ex.getMessage());

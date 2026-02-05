@@ -2,8 +2,10 @@ package com.todoapp.service;
 
 import com.todoapp.dto.AuthResponse;
 import com.todoapp.dto.LoginRequest;
+import com.todoapp.dto.SignupRequest;
 
 public interface AuthenticationService {
+    AuthResponse register(SignupRequest request);
     AuthResponse authenticate(LoginRequest request);
     void logout(String sessionId);
     AuthResponse refreshSession(String sessionId);

@@ -3,6 +3,7 @@ package com.todoapp.controller;
 import com.todoapp.dto.AuthResponse;
 import com.todoapp.dto.LoginRequest;
 import com.todoapp.dto.MessageResponse;
+import com.todoapp.dto.SignupRequest;
 import com.todoapp.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,6 +21,19 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AuthController {
     private final AuthenticationService authenticationService;
+
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+        log.info("Signup attempt for username: {}", request.getUsername());
+        try {
+            AuthResponse authResponse = authenticationService.register(request);
+            log.info("Signup successful for username: {}", request.getUsername());
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            log.error("Signup failed for username: {}", request.getUsername(), e);
+            throw e;
+        }
+    }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(

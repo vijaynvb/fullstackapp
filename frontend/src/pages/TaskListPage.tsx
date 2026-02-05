@@ -1,7 +1,6 @@
 import { useQuery } from 'react-query'
 import { Link } from 'react-router-dom'
 import { taskApi } from '../api/taskApi'
-import { TaskStatus, TaskPriority } from '../api/types'
 import './TaskListPage.css'
 
 export const TaskListPage = () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -124,10 +124,18 @@ export const LoginPage = () => {
               Remember me
             </label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          <button 
+            type="submit" 
+            className={`btn btn-primary ${loading ? 'loading' : ''}`} 
+            disabled={loading}
+          >
+            {loading && <span className="spinner" aria-hidden="true" />}
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+        <p className="login-signup-link">
+          Don&apos;t have an account? <Link to="/signup">Sign Up</Link>
+        </p>
       </div>
     </div>
   )

@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+### Java Backend Rules
+1. Use Java 21 features when appropriate.
+2. Always handle null safely — avoid unchecked `NullPointerException`.
+3. Use structured logging (`slf4j`) with context data for traceability.
+4. Unit tests must achieve >80% code coverage via JUnit and Mockito.
+
+### React Frontend Rules
+1. Use functional React components with Hooks; avoid class components.
+2. Prefer React Query for data fetching and caching over manual useEffect.
+3. Always create PropTypes or TypeScript interfaces for component props.
+4. Avoid inline styles — use CSS modules or styled components.
