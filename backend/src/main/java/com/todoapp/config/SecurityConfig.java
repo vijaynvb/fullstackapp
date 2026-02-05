@@ -64,9 +64,6 @@ public class SecurityConfig {
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(customAuthenticationEntryPoint())
                 .accessDeniedHandler(customAccessDeniedHandler())
-                .and(exception -> {
-                    // Ensure exceptions are handled before default Spring Security handlers
-                })
             )
             .headers(headers -> headers.frameOptions().disable()); // For H2 console
         

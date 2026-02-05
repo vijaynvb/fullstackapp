@@ -34,9 +34,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User user;
         
         if (request.getType() == AuthType.INTERNAL) {
-            user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AuthenticationException("Invalid credentials"));
-            
+            String identifier = request.getUsername();
+            // Allow login using either username or email
+            user = userRepository.findByUsername(identifier)
+                    .orElseGet(() -> userRepository.findByEmail(identifier).orElse(null));
+
+            if (user == null) {
+                throw new AuthenticationException("Invalid credentials");
+            }
+
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 throw new AuthenticationException("Invalid credentials");
             }
