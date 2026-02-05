@@ -1,3 +1,8 @@
+---
+name: k8s-deploy-skill
+description: Deploy the Todo Application to a Kubernetes cluster
+---
+
 # Kubernetes Deployment Skill
 
 Deploy the Todo Application to a Kubernetes cluster.

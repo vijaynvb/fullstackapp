@@ -42,6 +42,51 @@ metadata:
 data:
   BACKEND_URL: "http://todo-backend-service:8080"
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-nginx-config
+  namespace: todo-app
+  labels:
+    app.kubernetes.io/name: todo-frontend
+    app.kubernetes.io/component: frontend
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Gzip compression
+        gzip on;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+        # Handle React Router - serve index.html for all routes
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Proxy API requests to backend (using K8s service name)
+        location /api/ {
+            proxy_pass http://todo-backend-service:8080/api/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+        }
+
+        # Cache static assets
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+---
 # -----------------------------------------------------------------------------
 # Backend Deployment
 # -----------------------------------------------------------------------------
@@ -85,17 +130,17 @@ spec:
               cpu: "500m"
           livenessProbe:
             httpGet:
-              path: /api/health
+              path: /api/v1/health
               port: 8080
-            initialDelaySeconds: 40
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /api/health
+              path: /api/v1/health
               port: 8080
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -161,6 +206,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: todo-frontend-config
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
           resources:
             requests:
               memory: "64Mi"
@@ -188,6 +237,10 @@ spec:
             runAsNonRoot: false
             readOnlyRootFilesystem: false
             allowPrivilegeEscalation: false
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: todo-nginx-config
       restartPolicy: Always
 ---
 # -----------------------------------------------------------------------------
